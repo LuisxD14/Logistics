@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Calzando a Mexico</title>
+
+    <!-- Fuente -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <!-- CSS PRINCIPAL: asegúrate de que este archivo exista -->
+    <link rel="stylesheet" href="/css/wecore.css">
+</head>
+<body class="matrix">
+<header class="nav">
+    <div class="brand">Calzando a Mexico</div>
+    <nav>
+        <a href="/">Inicio</a>
+        <a href="/admin.html">Administrar productos</a>
+    </nav>
+</header>
+
+<main class="container">
+    <section class="hero">
+        <h1 class="glitch">Sistema de inventario</h1>
+        <p>Equipo Sudosu</p>
+    </section>
+
+    <!-- NUEVO: pestañas de tiendas -->
+    <section class="filters">
+        <div id="store-tabs" class="store-tabs"></div>
+    </section>
+
+    <!-- Aquí se pintan las tarjetas filtradas por tienda -->
+    <section id="feed" class="feed" aria-live="polite"></section>
+</main>
+
+<footer class="footer">© <span id="y"></span> — inventario <span class="tag">v1.0</span></footer>
+
+<script>
+    document.getElementById('y').textContent = new Date().getFullYear();
+
+    const feed = document.getElementById('feed');
+    const storeTabs = document.getElementById('store-tabs');
+
+    let allArticles = [];
+    let currentStore = null;
+
+    // Cargar datos una sola vez
+    fetch('/api/articles')
+        .then(r => r.json())
+        .then(list => {
+            allArticles = list;
+
+            if (!list.length) {
+                feed.innerHTML = '<div class="card"><p class="excerpt">No hay productos aún.</p></div>';
+                return;
+            }
+
+            // Obtener lista única de tiendas
+            const stores = [...new Set(list.map(a => a.tienda || 'Sin tienda'))];
+
+            // Tienda seleccionada por defecto
+            currentStore = stores[0];
+
+            renderStoreTabs(stores);
+            renderFeedForStore(currentStore);
+        })
+        .catch(e => {
+            feed.innerHTML =
+                '<div class="card"><p class="excerpt">Error cargando productos.</p></div>';
+            console.error(e);
+        });
+
+    // Renderizar pestañas de tiendas
+    function renderStoreTabs(stores) {
+        storeTabs.innerHTML = stores.map(t => `
+      <button class="store-tab${t === currentStore ? ' active' : ''}" data-store="${t}">
+        ${t}
+      </button>
+    `).join('');
+    }
+
+    // Renderizar tarjetas filtradas por tienda
+    function renderFeedForStore(store) {
+        const filtered = allArticles.filter(a => (a.tienda || 'Sin tienda') === store);
+
+        if (!filtered.length) {
+            feed.innerHTML = '<div class="card"><p class="excerpt">No hay registros para esta tienda.</p></div>';
+            return;
+        }
+
+        feed.innerHTML = filtered.map(a => {
+            const tienda = a.tienda ?? 'Tienda desconocida';
+            const unidad = a.unidadNegocio ?? 'Unidad de negocio no especificada';
+            const anio = a.anio ?? '';
+            const mes = a.mes ?? '';
+            const inventario = a.inventarioPzs ?? 'N/D';
+
+            const periodo = [mes, anio].filter(Boolean).join(' ') || 'Periodo no especificado';
+
+            return `
+        <article class="card">
+          <h2>
+            <a href="/article.html?id=${encodeURIComponent(a.id)}">
+              ${tienda}
+            </a>
+          </h2>
+          <div class="meta">${periodo}</div>
+          <p class="excerpt">
+            ${unidad}<br>
+            Inventario: ${inventario} pzs
+          </p>
+        </article>
+      `;
+        }).join('');
+    }
+
+    // Cambiar de tienda al hacer clic en una pestaña
+    storeTabs.addEventListener('click', e => {
+        const btn = e.target.closest('[data-store]');
+        if (!btn) return;
+
+        currentStore = btn.dataset.store;
+
+        const stores = [...new Set(allArticles.map(a => a.tienda || 'Sin tienda'))];
+        renderStoreTabs(stores);
+        renderFeedForStore(currentStore);
+    });
+</script>
+
+        // Watsonx
+<script>
+    window.watsonAssistantChatOptions = {
+        integrationID: "a981db28-43b0-4fa6-a6af-555756181b6b",
+        region: "au-syd",
+        serviceInstanceID: "d47b5da3-2d56-412f-a766-5a3bc3ae69a3",
+        onLoad: async (instance) => { await instance.render(); }
+    };
+    setTimeout(function(){
+        const t=document.createElement('script');
+        t.src="https://web-chat.global.assistant.watson.appdomain.cloud/versions/" + (window.watsonAssistantChatOptions.clientVersion || 'latest') + "/WatsonAssistantChatEntry.js";
+        document.head.appendChild(t);
+    });
+</script>
+</body>
+</html>
+

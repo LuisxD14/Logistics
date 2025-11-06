@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Admin</title>
+    <link rel="stylesheet" href="/css/wecore.css">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+</head>
+<body class="matrix">
+<header class="nav">
+    <div class="brand"><a href="/">Calzando a Mexico</a></div>
+    <nav><a href="/">Inicio</a></nav>
+</header>
+
+<main class="container">
+    <section class="hero">
+        <h1>Administrar inventario</h1>
+        <p>Crear / consultar / borrar registros de inventario.</p>
+    </section>
+
+    <section class="article" style="margin-top:18px">
+        <form id="f">
+            <label>Nombre de la tienda:</label>
+            <input class="input" name="tienda" required />
+
+            <label style="margin-top:12px;display:block">Tipo de producto:</label>
+            <input class="input" name="unidadNegocio" required />
+
+            <label style="margin-top:12px;display:block">Año:</label>
+            <input class="input" name="anio" type="number" min="2000" max="2100" required />
+
+            <label style="margin-top:12px;display:block">Mes:</label>
+            <input class="input" name="mes" placeholder="Enero, Febrero, etc." required />
+
+            <label style="margin-top:12px;display:block">Inventario (piezas):</label>
+            <input class="input" name="inventarioPzs" type="number" min="0" required />
+
+            <div style="margin-top:14px">
+                <button class="button" type="submit">Guardar</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="article" style="margin-top:18px">
+        <h2>Registros de inventario</h2>
+        <div id="list" class="feed"></div>
+    </section>
+</main>
+
+<script>
+    const listEl = document.getElementById('list');
+
+    async function load() {
+        const res = await fetch('/api/articles');
+        const items = await res.json();
+        if (!items.length) {
+            listEl.innerHTML = '<div class="card"><p class="excerpt">No hay registros de inventario.</p></div>';
+            return;
+        }
+
+        listEl.innerHTML = items.map(a => {
+            const tienda = a.tienda ?? 'Tienda desconocida';
+            const unidad = a.unidadNegocio ?? 'Unidad no especificada';
+            const anio = a.anio ?? '';
+            const mes = a.mes ?? '';
+            const inventario = a.inventarioPzs ?? 'N/D';
+
+            const periodo = [mes, anio].filter(Boolean).join(' ') || 'Periodo no especificado';
+
+            return `
+      <article class="card">
+        <h2>${tienda}</h2>
+        <div class="meta">
+          ${unidad} — ${periodo} —
+          <strong>Inv:</strong> ${inventario} pzs —
+          <code>ID: ${a.id}</code>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:8px">
+          <a class="button" href="/article.html?id=${encodeURIComponent(a.id)}" target="_blank">Ver</a>
+          <button class="button" data-del="${a.id}">Borrar</button>
+        </div>
+      </article>
+    `;
+        }).join('');
+    }
+
+    listEl.addEventListener('click', async (e) => {
+        const id = e.target?.dataset?.del;
+        if (!id) return;
+        if (!confirm('¿Borrar este registro de inventario?')) return;
+        const res = await fetch(`/api/articles/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (res.ok) load();
+        else alert('Error al borrar');
+    });
+
+    document.getElementById('f').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(e.target).entries());
+
+        // Convertir a número los campos que lo necesitan
+        if (data.anio) data.anio = parseInt(data.anio, 10);
+        if (data.inventarioPzs) data.inventarioPzs = parseInt(data.inventarioPzs, 10);
+
+        const res = await fetch('/api/articles', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (res.ok) {
+            e.target.reset();
+            load();
+        } else {
+            alert('Error guardando');
+        }
+    });
+
+    load();
+</script>
+</body>
+</html>
+

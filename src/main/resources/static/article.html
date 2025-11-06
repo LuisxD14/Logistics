@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Producto</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/wecore.css">
+</head>
+<body class="matrix">
+<header class="nav">
+    <div class="brand"><a href="/">Calzando a Mexico</a></div>
+    <nav><a href="/">Inicio</a></nav>
+</header>
+
+<main class="container">
+    <article class="article">
+        <h1 id="title" class="glitch">...</h1>
+        <div id="date" class="meta">...</div>
+        <div id="content" class="content">Cargando…</div>
+    </article>
+</main>
+
+<footer class="footer">← <a href="/">Volver</a></footer>
+
+<script>
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id');
+    if (!id) { location.href = '/'; }
+
+    fetch(`/api/articles/${encodeURIComponent(id)}`)
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(a => {
+            const tienda = a.tienda ?? 'Tienda desconocida';
+            const unidad = a.unidadNegocio ?? 'Tipo de producto no especificada';
+            const anio = a.anio ?? '';
+            const mes = a.mes ?? '';
+            const inventario = a.inventarioPzs ?? 'N/D';
+
+            const periodo = [mes, anio].filter(Boolean).join(' ') || 'Periodo no especificado';
+
+            // Título de la pestaña
+            document.title = `${tienda} | Calzando a Mexico`;
+            document.getElementById('title').textContent = tienda;
+
+            // fecha / periodo
+            document.getElementById('date').textContent = periodo;
+
+            // Contenido
+            const content = document.getElementById('content');
+            content.innerHTML = `
+                <p><strong>Unidad de negocio:</strong> ${unidad}</p>
+                <p><strong>Inventario:</strong> ${inventario} piezas</p>
+                <p><strong>ID de registro:</strong> ${a.id}</p>
+            `;
+        })
+        .catch(e => {
+            document.getElementById('content').textContent = 'No encontrado.';
+            console.error(e);
+        });
+</script>
+</body>
+</html>
